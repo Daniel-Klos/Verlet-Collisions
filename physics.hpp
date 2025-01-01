@@ -1,7 +1,6 @@
 #pragma once
 #include "collision_grid.hpp"
 #include "thread_pool.hpp"
-#include "utils.hpp"
 #include <vector>
 
 
@@ -80,14 +79,13 @@ struct PhysicSolver
     {
         for (uint32_t i{0}; i < c.objects_count; ++i) {
             const uint32_t atom_idx = c.objects[i];
-            checkAtomCellCollisions(atom_idx, grid.data[index - 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index]);
-            checkAtomCellCollisions(atom_idx, grid.data[index + 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height - 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height    ]);
-            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height + 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height - 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height    ]);
+            for (int32_t side = 0; side < 2; ++side) {
+                checkAtomCellCollisions(atom_idx, grid.data[index + grid.height + side]);
+            }
+            for (int32_t side = 0; side < 2; ++side) {
+                checkAtomCellCollisions(atom_idx, grid.data[index + side]);   
+            }
+            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height]);
             checkAtomCellCollisions(atom_idx, grid.data[index - grid.height + 1]);
         }
     }
@@ -120,7 +118,7 @@ struct PhysicSolver
         // Eventually process rest if the world is not divisible by the thread count
         if (last_cell < grid.data.size()) {
             thread_pool.addTask([this, last_cell]{
-                solveCollisionThreaded(last_cell, to<uint32_t>(grid.data.size()));
+                solveCollisionThreaded(last_cell, static_cast<uint32_t>(grid.data.size()));
             });
         }
         thread_pool.waitForCompletion();
@@ -150,7 +148,7 @@ struct PhysicSolver
     void update(float dt)
     {
         // Perform the sub steps
-        const float sub_dt = dt / to<float>(sub_steps);
+        const float sub_dt = dt / static_cast<float>(sub_steps);
         for (uint32_t i(sub_steps); i--;) {
             addObjectsToGrid();
             solveCollisions();
@@ -166,7 +164,7 @@ struct PhysicSolver
         for (int32_t index = 0; index < numParticles; ++index) {
             if (positions[2 * index] > scalingFactor && positions[2 * index] < scaledWIDTH - scalingFactor &&
                 positions[2 * index + 1] > scalingFactor && positions[2 * index + 1] < scaledHEIGHT - scalingFactor) {
-                grid.addAtom(to<int32_t>(positions[2 * index] / scalingFactor), to<int32_t>(positions[2 * index + 1] / scalingFactor), i);
+                grid.addAtom(static_cast<int32_t>(positions[2 * index] / scalingFactor), static_cast<int32_t>(positions[2 * index + 1] / scalingFactor), i);
             }
             ++i;
         }
